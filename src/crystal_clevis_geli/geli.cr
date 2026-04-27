@@ -25,17 +25,20 @@ module CrystalClevisGeli
     end
 
     # Initialize a new GELI provider on `device` keyed with `keyfile_bytes`.
-    # Extra options can be passed (e.g. ["-l", "256"] for AES-XTS-256).
+    # `-P` disables the interactive passphrase prompt: the keyfile is the
+    # only key. Extra options can be passed (e.g. ["-l", "256"] for AES-XTS-256).
     def init(device : String, keyfile_bytes : Bytes, options : Array(String) = [] of String)
       with_keyfile(keyfile_bytes) do |path|
-        run!([binary, "init", "-K", path] + options + [device])
+        run!([binary, "init", "-P", "-K", path] + options + [device])
       end
     end
 
     # Attach (open) an existing GELI provider with the given key.
+    # `-p` disables the interactive passphrase prompt for keyfile-only
+    # providers (those initialized with `init -P`).
     def attach(device : String, keyfile_bytes : Bytes)
       with_keyfile(keyfile_bytes) do |path|
-        run!([binary, "attach", "-k", path, device])
+        run!([binary, "attach", "-p", "-k", path, device])
       end
     end
 
@@ -47,9 +50,10 @@ module CrystalClevisGeli
 
     # Replace the keyfile in slot 0 of the provider. Useful when
     # rotating keys via crystal-clevis-geli `bind`.
+    # `-P` makes the new key keyfile-only.
     def setkey(device : String, keyfile_bytes : Bytes, slot : Int32 = 0)
       with_keyfile(keyfile_bytes) do |path|
-        run!([binary, "setkey", "-n", slot.to_s, "-K", path, device])
+        run!([binary, "setkey", "-P", "-n", slot.to_s, "-K", path, device])
       end
     end
 
