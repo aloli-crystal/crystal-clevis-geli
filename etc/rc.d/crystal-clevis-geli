@@ -1,0 +1,120 @@
+#!/bin/sh
+#
+# rc.d script: unattended boot-time unlock of Tang-bound GELI volumes
+# via crystal-clevis-geli.
+#
+# Configuration in /etc/rc.conf:
+#
+#   crystal_clevis_geli_enable="YES"
+#   # Space-separated list of GELI providers to unlock at boot.
+#   # Each entry can be a /dev path or just the device name.
+#   crystal_clevis_geli_devices="ada0p4 ada1p4"
+#
+#   # Optional: where the JWE files are stored (default: /var/db/crystal-clevis-geli)
+#   #crystal_clevis_geli_keystore="/var/db/crystal-clevis-geli"
+#
+#   # Optional: path to the binary (default: /usr/local/sbin/crystal-clevis-geli)
+#   #crystal_clevis_geli_bin="/usr/local/sbin/crystal-clevis-geli"
+#
+# This script runs AFTER networking is up (Tang must be reachable) and
+# BEFORE mountcritremote / DAEMON, so encrypted volumes are available
+# to anything that mounts them later.
+
+# PROVIDE: crystal_clevis_geli
+# REQUIRE: NETWORKING
+# BEFORE:  mountcritremote DAEMON
+# KEYWORD: nojail
+
+. /etc/rc.subr
+
+name="crystal_clevis_geli"
+desc="Unattended Tang-based unlock for GELI volumes"
+rcvar="crystal_clevis_geli_enable"
+
+load_rc_config $name
+
+: ${crystal_clevis_geli_enable:="NO"}
+: ${crystal_clevis_geli_bin:="/usr/local/sbin/crystal-clevis-geli"}
+: ${crystal_clevis_geli_keystore:="/var/db/crystal-clevis-geli"}
+: ${crystal_clevis_geli_devices:=""}
+
+start_cmd="crystal_clevis_geli_start"
+stop_cmd="crystal_clevis_geli_stop"
+status_cmd="crystal_clevis_geli_status"
+extra_commands="status"
+
+normalize_device() {
+	# Accepts "ada0p4" or "/dev/ada0p4", returns "/dev/ada0p4".
+	case "$1" in
+		/*) echo "$1" ;;
+		*)  echo "/dev/$1" ;;
+	esac
+}
+
+crystal_clevis_geli_start() {
+	if [ -z "${crystal_clevis_geli_devices}" ]; then
+		echo "${name}: no devices configured (crystal_clevis_geli_devices is empty)"
+		return 0
+	fi
+	if [ ! -x "${crystal_clevis_geli_bin}" ]; then
+		echo "${name}: binary not found or not executable: ${crystal_clevis_geli_bin}"
+		return 1
+	fi
+	# geom_eli is required to attach .eli providers — load it once if needed.
+	kldstat -q -m g_eli || kldload geom_eli || {
+		echo "${name}: failed to load geom_eli kernel module"
+		return 1
+	}
+
+	rc=0
+	for dev in ${crystal_clevis_geli_devices}; do
+		dev_path=$(normalize_device "${dev}")
+		if [ ! -e "${dev_path}" ]; then
+			echo "${name}: ${dev_path} does not exist, skipping"
+			rc=1
+			continue
+		fi
+		if [ -e "${dev_path}.eli" ]; then
+			echo "${name}: ${dev_path}.eli already attached, skipping"
+			continue
+		fi
+		echo "${name}: unlocking ${dev_path}"
+		if ! "${crystal_clevis_geli_bin}" unlock \
+				--device "${dev_path}" \
+				--key-store "${crystal_clevis_geli_keystore}"; then
+			echo "${name}: failed to unlock ${dev_path}"
+			rc=1
+		fi
+	done
+	return $rc
+}
+
+crystal_clevis_geli_stop() {
+	if [ -z "${crystal_clevis_geli_devices}" ]; then
+		return 0
+	fi
+	for dev in ${crystal_clevis_geli_devices}; do
+		dev_path=$(normalize_device "${dev}")
+		if [ -e "${dev_path}.eli" ]; then
+			echo "${name}: detaching ${dev_path}.eli"
+			geli detach "${dev_path}" || true
+		fi
+	done
+}
+
+crystal_clevis_geli_status() {
+	if [ -z "${crystal_clevis_geli_devices}" ]; then
+		echo "${name}: no devices configured"
+		return 0
+	fi
+	for dev in ${crystal_clevis_geli_devices}; do
+		dev_path=$(normalize_device "${dev}")
+		if [ -e "${dev_path}.eli" ]; then
+			echo "${name}: ${dev_path}.eli attached"
+		else
+			echo "${name}: ${dev_path}.eli NOT attached"
+		fi
+	done
+}
+
+run_rc_command "$1"
