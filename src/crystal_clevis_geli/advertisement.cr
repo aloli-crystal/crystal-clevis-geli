@@ -21,9 +21,12 @@ module CrystalClevisGeli
                    @derive_keys : Array(CrystalJose::JWK::ECKey))
     end
 
-    # Parse a JWS Compact advertisement and verify its self-signature
-    # using one of the embedded signing keys.
+    # Parse a JWS advertisement (Compact or Flattened JSON form, per
+    # RFC 7515 §7.2.2 — the FreeBSD `tangd` daemon emits the latter)
+    # and verify its self-signature using one of the embedded signing
+    # keys.
     def self.from_jws(jws : String) : Advertisement
+      jws = compactify_if_flattened(jws)
       info = CrystalJose::JWS.decode(jws)
       payload_str = String.new(info[:payload])
       jwks = Hash(String, JSON::Any).from_json(payload_str)
@@ -57,6 +60,23 @@ module CrystalClevisGeli
     # Find a deriveKey by its thumbprint (RFC 7638).
     def find_derive_key(thumbprint_b64url : String) : CrystalJose::JWK::ECKey?
       @derive_keys.find { |k| k.thumbprint_base64url == thumbprint_b64url }
+    end
+
+    # Convert a JWS in Flattened JSON Serialization (RFC 7515 §7.2.2)
+    # to Compact Serialization. A Compact-form input is returned as is.
+    private def self.compactify_if_flattened(jws : String) : String
+      jws = jws.strip
+      return jws unless jws.starts_with?("{")
+
+      obj = Hash(String, JSON::Any).from_json(jws)
+      protected_b64 = obj["protected"]?.try(&.as_s) ||
+                      raise(Error.new("Flattened JWS missing 'protected' header"))
+      payload_b64 = obj["payload"]?.try(&.as_s) ||
+                    raise(Error.new("Flattened JWS missing 'payload'"))
+      signature_b64 = obj["signature"]?.try(&.as_s) ||
+                      raise(Error.new("Flattened JWS missing 'signature'"))
+
+      "#{protected_b64}.#{payload_b64}.#{signature_b64}"
     end
 
     private def self.uses_for(key_hash : Hash(String, JSON::Any)) : Array(String)
