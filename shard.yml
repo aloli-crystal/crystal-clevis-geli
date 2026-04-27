@@ -16,7 +16,8 @@ targets:
 
 dependencies:
   crystal-jose:
-    path: ../crystal-jose
+    github: aloli-crystal/crystal-jose
+    version: ~> 0.1
 
 development_dependencies:
   ameba:
