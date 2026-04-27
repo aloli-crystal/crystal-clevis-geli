@@ -1,6 +1,17 @@
 require "spec"
 require "../src/crystal_clevis_geli"
 
+# In-memory registry of MockTangClient instances keyed by URL. Tests
+# can use `MOCK_TANG_REGISTRY[url]` (or the `mock_tang_factory` proc
+# below) when they need SssBinder to round-trip through the mocks.
+MOCK_TANG_REGISTRY = {} of String => CrystalClevisGeli::TangClient
+
+def mock_tang_factory : Proc(String, CrystalClevisGeli::TangClient)
+  ->(url : String) {
+    MOCK_TANG_REGISTRY[url]? || raise "no mock registered for #{url}"
+  }
+end
+
 # A self-contained Tang server simulation: hosts its own keypairs,
 # produces a signed advertisement, and answers `recover` requests
 # with the correct EC point multiplication. Used to drive the full
@@ -13,6 +24,7 @@ class MockTangClient < CrystalClevisGeli::TangClient
                  @signing_priv : CrystalJose::JWK::ECKey = CrystalJose::JWK::ECKey.generate(CrystalJose::JWK::Curve::P521),
                  @derive_priv : CrystalJose::JWK::ECKey = CrystalJose::JWK::ECKey.generate(CrystalJose::JWK::Curve::P521))
     super(url)
+    MOCK_TANG_REGISTRY[url] = self
   end
 
   protected def fetch_advertisement : CrystalClevisGeli::Advertisement

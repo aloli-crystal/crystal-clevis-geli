@@ -35,14 +35,16 @@ module CrystalClevisGeli::CLI
 
   def bind(argv : Array(String)) : Int32
     device = ""
-    tang_url = ""
+    tang_urls = [] of String
+    threshold = 0
     key_store = DEFAULT_KEY_STORE
     do_init = false
 
     OptionParser.parse(argv.dup) do |parser|
-      parser.banner = "Usage: crystal-clevis-geli bind -d DEVICE -t TANG_URL [options]"
+      parser.banner = "Usage: crystal-clevis-geli bind -d DEVICE -t TANG_URL [-t TANG_URL ...] [options]"
       parser.on("-d PATH", "--device=PATH", "GELI device (e.g. /dev/ada0p4)") { |v| device = v }
-      parser.on("-t URL", "--tang=URL", "Tang server URL") { |v| tang_url = v }
+      parser.on("-t URL", "--tang=URL", "Tang server URL (repeat for multiple Tangs)") { |v| tang_urls << v }
+      parser.on("-k K", "--threshold=K", "Threshold K (number of Tangs required to unlock); default 1") { |v| threshold = v.to_i }
       parser.on("-s PATH", "--key-store=PATH", "JWE storage directory (default: #{DEFAULT_KEY_STORE})") { |v| key_store = v }
       parser.on("-i", "--init", "Run `geli init` instead of `setkey`") { do_init = true }
       parser.on("-h", "--help", "Show this help") do
@@ -56,8 +58,14 @@ module CrystalClevisGeli::CLI
       end
     end
 
-    if device.empty? || tang_url.empty?
+    if device.empty? || tang_urls.empty?
       STDERR.puts "missing -d/--device or -t/--tang"
+      return 64
+    end
+
+    threshold = 1 if threshold == 0
+    if threshold > tang_urls.size
+      STDERR.puts "threshold (#{threshold}) cannot exceed the number of -t/--tang flags (#{tang_urls.size})"
       return 64
     end
 
@@ -68,15 +76,18 @@ module CrystalClevisGeli::CLI
       CrystalClevisGeli::Geli.setkey(device, keyfile)
     end
 
-    tang = CrystalClevisGeli::TangClient.new(tang_url)
-    jwe = tang.bind(keyfile)
+    jwe = if tang_urls.size == 1 && threshold == 1
+            CrystalClevisGeli::TangClient.new(tang_urls.first).bind(keyfile)
+          else
+            CrystalClevisGeli::SssBinder.bind(keyfile, tang_urls, threshold: threshold)
+          end
 
     Dir.mkdir_p(key_store)
     jwe_path = jwe_path_for(key_store, device)
     File.write(jwe_path, jwe)
     File.chmod(jwe_path, 0o600)
 
-    puts "bound #{device} -> #{jwe_path}"
+    puts "bound #{device} -> #{jwe_path} (#{tang_urls.size} Tang#{tang_urls.size > 1 ? "s, threshold #{threshold}" : ""})"
     0
   rescue ex
     STDERR.puts "bind failed: #{ex.message}"
@@ -114,13 +125,16 @@ module CrystalClevisGeli::CLI
     end
     jwe = File.read(jwe_path)
 
-    # The JWE carries `clevis.tang.url`, so we don't need a CLI flag.
-    header_b64 = jwe.split('.').first
-    header = Hash(String, JSON::Any).from_json(String.new(CrystalJose::Utils.base64url_decode(header_b64)))
-    tang_url = header["clevis"].as_h["tang"].as_h["url"].as_s
+    # Dispatch on the JWE format: SSS multi-Tang vs plain single-Tang.
+    keyfile = if CrystalClevisGeli::SssBinder.is_sss?(jwe)
+                CrystalClevisGeli::SssBinder.recover(jwe)
+              else
+                header_b64 = jwe.split('.').first
+                header = Hash(String, JSON::Any).from_json(String.new(CrystalJose::Utils.base64url_decode(header_b64)))
+                tang_url = header["clevis"].as_h["tang"].as_h["url"].as_s
+                CrystalClevisGeli::TangClient.new(tang_url).recover(jwe)
+              end
 
-    tang = CrystalClevisGeli::TangClient.new(tang_url)
-    keyfile = tang.recover(jwe)
     CrystalClevisGeli::Geli.attach(device, keyfile)
 
     puts "attached #{device}"
