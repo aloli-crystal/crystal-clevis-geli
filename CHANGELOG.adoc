@@ -3,11 +3,45 @@
 :toc-title: Versions
 :toclevels: 2
 
-== v0.1.0 — UNRELEASED
+== v0.2.0 — 2026-04-27
 
-* Initial scaffolding (shard.yml, README bilingual, CI, ameba,
-  LICENSE, gitignore).
-* Tang client protocol (advertise, bind, recover) on top of
-  `crystal-jose`.
-* GELI binding via `geli(8)` shell-out.
-* CLI: `bind`, `unlock`.
+Multi-Tang threshold support via Shamir Secret Sharing.
+
+* `Sss` module : split a secret into N shares such that any K of
+  them can reconstruct it. Polynomial over GF(p) where p is a fresh
+  256-bit safe prime per split, Lagrange interpolation at X=0 for
+  recovery. Tested round-trip for K=1/N=1, K=2/N=3, K=N strict, K=3/N=5.
+* `SssBinder` module : `bind` against N TangClients, encrypts the
+  CEK as a Clevis-style JWE with `alg: dir`, `enc: A256GCM`, and a
+  `clevis.sss` claim listing N sub-JWE (each a regular Tang ECDH-ES
+  encryption of one Shamir point as a JWK octet).
+* `SssBinder.recover` walks the sub-JWE list, performs the Tang
+  recovery dance on each, stops as soon as K succeed, then
+  reconstructs the CEK and decrypts the outer JWE.
+* CLI : `bind` accepts `--tang URL` repeated and `--threshold K`
+  (defaults to 1). `unlock` auto-detects the format (single-Tang vs
+  SSS) from the JWE protected header.
+* Format compatible with Clevis (latchset) `pin: sss` so a JWE
+  produced here is structurally similar to one from `clevis encrypt
+  sss` (full interop with `clevis decrypt` requires their daemon and
+  was not validated end-to-end in this release).
+* Validated **end-to-end on FreeBSD 15 aarch64 in QEMU** with three
+  local tangd instances : K=2/N=3 unlocks with all three Tangs,
+  unlocks with one Tang down, and fails cleanly with two Tangs down.
+
+=== Fixes from the v0.1 line, also released here
+
+* `Geli.init/setkey` now use `-P` (and `attach` uses `-p`) for
+  keyfile-only operation, fixing the « cannot read passphrase » error
+  on real GELI (commit 4565608).
+* `Advertisement.from_jws` now accepts JWS Flattened JSON
+  Serialization, the format actually emitted by the FreeBSD `tangd`
+  daemon (commit 23b2155).
+* New `etc/rc.d/crystal-clevis-geli` for unattended boot-time
+  unlocking (commit 3fb962a).
+
+== v0.1.0 — 2026-04-27
+
+Initial release: single-Tang bind/unlock for FreeBSD GELI volumes,
+on top of `crystal-jose`. CLI commands `bind`, `unlock`. End-to-end
+tested in QEMU on a FreeBSD 15 aarch64 VM against a real `tangd`.

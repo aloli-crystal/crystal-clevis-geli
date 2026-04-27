@@ -3,11 +3,48 @@
 :toc-title: Versions
 :toclevels: 2
 
-== v0.1.0 — NON PUBLIÉE
+== v0.2.0 — 2026-04-27
 
-* Squelette initial du shard (shard.yml, README bilingue, CI, ameba,
-  LICENSE, gitignore).
-* Protocole client Tang (advertise, bind, recover) au-dessus de
-  `crystal-jose`.
-* Binding GELI via shell-out `geli(8)`.
-* CLI : `bind`, `unlock`.
+Support multi-Tang avec seuil via Shamir Secret Sharing.
+
+* Module `Sss` : découpe un secret en N parts dont K suffisent à le
+  reconstituer. Polynôme dans GF(p) avec p un safe prime 256 bits
+  fraîchement tiré à chaque split, interpolation Lagrange en X=0 au
+  recover. Round-trip testé pour K=1/N=1, K=2/N=3, K=N strict, K=3/N=5.
+* Module `SssBinder` : `bind` contre N TangClient, chiffre la CEK
+  dans un JWE de style Clevis avec `alg: dir`, `enc: A256GCM` et un
+  claim `clevis.sss` listant N sub-JWE (chacun étant un
+  chiffrement Tang ECDH-ES classique d'un point Shamir sous forme de
+  JWK octet).
+* `SssBinder.recover` parcourt la liste des sub-JWE, effectue la
+  danse de récupération Tang sur chacun, s'arrête dès que K
+  réussissent, puis reconstitue la CEK et déchiffre le JWE outer.
+* CLI : `bind` accepte `--tang URL` répétable et `--threshold K`
+  (défaut 1). `unlock` détecte automatiquement le format
+  (Tang simple vs SSS) à partir de l'entête JWE.
+* Format compatible Clevis (latchset) `pin: sss` : un JWE produit
+  ici est structurellement identique à `clevis encrypt sss`
+  (l'interop complète avec `clevis decrypt` n'a pas été validée
+  end-to-end dans cette release, elle nécessite leur démon).
+* Validé **end-to-end sur FreeBSD 15 aarch64 dans QEMU** avec trois
+  instances `tangd` locales : K=2/N=3 déverrouille avec les trois
+  Tangs disponibles, continue à fonctionner avec un Tang en panne,
+  et échoue proprement avec deux Tangs en panne.
+
+=== Correctifs de la ligne v0.1 publiés ici aussi
+
+* `Geli.init/setkey` utilise maintenant `-P` (et `attach` utilise
+  `-p`) pour le mode keyfile-only, corrigeant l'erreur « cannot read
+  passphrase » sur du vrai GELI (commit 4565608).
+* `Advertisement.from_jws` accepte désormais le JWS Flattened JSON
+  Serialization, format réellement émis par le démon `tangd` FreeBSD
+  (commit 23b2155).
+* Nouveau `etc/rc.d/crystal-clevis-geli` pour le déverrouillage
+  automatique au boot (commit 3fb962a).
+
+== v0.1.0 — 2026-04-27
+
+Première version : bind/unlock single-Tang pour les volumes GELI
+FreeBSD, au-dessus de `crystal-jose`. Sous-commandes CLI `bind` et
+`unlock`. Testé end-to-end dans QEMU sur une VM FreeBSD 15 aarch64
+contre un vrai `tangd`.

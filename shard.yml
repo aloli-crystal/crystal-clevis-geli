@@ -1,5 +1,5 @@
 name: crystal-clevis-geli
-version: 0.1.0
+version: 0.2.0
 description: |
   FreeBSD GELI counterpart of latchset/clevis. Implements the Tang
   client protocol (NBDE) so that GELI volumes can be unlocked at
