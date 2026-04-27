@@ -1,0 +1,88 @@
+= crystal-clevis-geli
+:toc: left
+:toclevels: 2
+:source-highlighter: rouge
+
+image:https://github.com/aloli-crystal/crystal-clevis-geli/actions/workflows/ci.yml/badge.svg[CI,link=https://github.com/aloli-crystal/crystal-clevis-geli/actions/workflows/ci.yml]
+
+FreeBSD GELI counterpart of https://github.com/latchset/clevis[latchset/clevis].
+
+`crystal-clevis-geli` implements the Tang client protocol (Network-Bound
+Disk Encryption — NBDE) so that GELI-encrypted volumes can be unlocked
+**at boot, with no human intervention**, by interrogating one or more
+Tang servers.
+
+This brick does not exist anywhere in the FreeBSD ecosystem today.
+That is the gap this shard fills.
+
+French version: link:README.fr.adoc[README.fr.adoc].
+
+== Architecture
+
+[source]
+----
+                  ┌────────────────────────────────┐
+                  │    crystal-clevis-geli (this)  │
+                  │                                │
+                  │  bind / recover  ── geli setkey│
+                  │  Tang HTTP/JOSE                │
+                  └─────────────┬──────────────────┘
+                                │
+                                │ HTTP + JOSE
+                                ▼
+                       ┌────────────────┐
+                       │ Tang server(s) │
+                       │ (FreeBSD pkg)  │
+                       └────────────────┘
+----
+
+== Usage (planned)
+
+[source,shell]
+----
+# Bind a GELI volume to two Tang servers (threshold 2 of 2):
+crystal-clevis-geli bind \
+    --device /dev/ada0p4 \
+    --tang http://tang-nas.local \
+    --tang http://tang-ovh.example.com
+
+# Unlock a bound GELI volume at boot (called from rc.d):
+crystal-clevis-geli unlock --device /dev/ada0p4
+----
+
+== Status
+
+* **v0.1**: Tang client protocol (advertise, recover) on top of
+  `crystal-jose`. JOSE primitives validated against `latchset/jose`.
+* **v0.1**: GELI binding via `geli(8)` shell-out.
+* **v0.2 (later)**: Shamir threshold across multiple Tang servers
+  (`sss` à la Clevis).
+
+== Installation
+
+[source,shell]
+----
+shards install
+crystal build src/cli.cr -o crystal-clevis-geli
+sudo install -m 0755 crystal-clevis-geli /usr/local/sbin/
+----
+
+== Development
+
+[source,shell]
+----
+shards install
+crystal spec
+crystal tool format --check
+bin/ameba
+----
+
+== License
+
+MIT — see link:LICENSE[LICENSE].
+
+== References
+
+* https://github.com/latchset/clevis[Clevis] — the Linux/LUKS reference
+* https://github.com/latchset/tang[Tang] — the server side
+* https://manpages.freebsd.org/cgi/man.cgi?geli(8)[geli(8)]

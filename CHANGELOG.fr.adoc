@@ -1,0 +1,13 @@
+= Journal des modifications
+:toc: left
+:toc-title: Versions
+:toclevels: 2
+
+== v0.1.0 — NON PUBLIÉE
+
+* Squelette initial du shard (shard.yml, README bilingue, CI, ameba,
+  LICENSE, gitignore).
+* Protocole client Tang (advertise, bind, recover) au-dessus de
+  `crystal-jose`.
+* Binding GELI via shell-out `geli(8)`.
+* CLI : `bind`, `unlock`.

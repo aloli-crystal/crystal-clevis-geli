@@ -1,0 +1,13 @@
+= Changelog
+:toc: left
+:toc-title: Versions
+:toclevels: 2
+
+== v0.1.0 — UNRELEASED
+
+* Initial scaffolding (shard.yml, README bilingual, CI, ameba,
+  LICENSE, gitignore).
+* Tang client protocol (advertise, bind, recover) on top of
+  `crystal-jose`.
+* GELI binding via `geli(8)` shell-out.
+* CLI: `bind`, `unlock`.
