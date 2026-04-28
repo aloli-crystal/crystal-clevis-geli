@@ -5,6 +5,45 @@
 
 image:https://github.com/aloli-crystal/crystal-clevis-geli/actions/workflows/ci.yml/badge.svg[CI,link=https://github.com/aloli-crystal/crystal-clevis-geli/actions/workflows/ci.yml]
 
+[IMPORTANT]
+.Project status — 27 April 2026
+====
+This shard is *being deprecated in favour of `crystal-clevis-zfs`*.
+
+*Why the change?* — comparative analysis of GELI vs ZFS native
+encryption for the Aloli use case (FreeBSD + ZFS):
+
+* *Performance*: ZFS native encryption wins by a wide margin on
+  compressible data (logs, databases, JSON, source code) because
+  ZFS compression runs *before* encryption. With GELI, ZFS sees
+  cryptographic noise and compression becomes useless.
+* *Boot simplicity*: a single ZFS pool with encrypted child
+  datasets, two commands (`zpool import` + `zfs load-key`) instead
+  of an `N × geli attach` + `N × zpool import` chain.
+* *Snapshots / send-recv*: ZFS native supports `zfs send -w` which
+  exports encrypted snapshots as-is — off-site backups without the
+  key become possible.
+
+`crystal-clevis-geli` v0.1 is *still functional and tested* (QEMU
+FreeBSD 15 aarch64 bench). The code is *not archived* until
+`crystal-clevis-zfs` is delivered and working — you can keep using
+it during the transition.
+
+*Planned migration*: Aloli users move to `crystal-clevis-zfs` at
+each server's next re-bootstrap. No forced in-place migration.
+
+*Reference*: see
+https://github.com/aloli-crystal/crystal-beryl/blob/production/crystal-clevis-zfs-specs.adoc[crystal-clevis-zfs-specs.adoc]
+in `crystal-beryl` for the successor specs, and
+https://github.com/aloli-crystal/crystal-beryl/blob/production/boot-and-mount-plan.adoc[boot-and-mount-plan.adoc]
+§ « Pivot GELI → ZFS native » for the detailed rationale.
+
+*For the FreeBSD community*: if you have a Tang+GELI use case
+(Tang+UFS, Tang+ext4 portable, etc.) that doesn't translate to
+Tang+ZFS, this shard remains usable and open source. Forks are
+welcome.
+====
+
 FreeBSD GELI counterpart of https://github.com/latchset/clevis[latchset/clevis].
 
 `crystal-clevis-geli` implements the Tang client protocol (Network-Bound

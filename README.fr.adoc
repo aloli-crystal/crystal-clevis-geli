@@ -5,6 +5,47 @@
 
 image:https://github.com/aloli-crystal/crystal-clevis-geli/actions/workflows/ci.yml/badge.svg[CI,link=https://github.com/aloli-crystal/crystal-clevis-geli/actions/workflows/ci.yml]
 
+[IMPORTANT]
+.Statut du projet — 27 avril 2026
+====
+Ce shard est *en cours de dépréciation au profit de
+`crystal-clevis-zfs`*.
+
+*Pourquoi ce changement ?* — analyse comparative GELI vs ZFS
+native encryption pour le cas d'usage Aloli (FreeBSD + ZFS) :
+
+* *Performance* : ZFS native encryption gagne largement quand les
+  données sont compressibles (logs, BDD, JSON, code), parce que la
+  compression ZFS s'applique *avant* le chiffrement. Avec GELI, ZFS
+  voit du bruit cryptographique et la compression devient inutile.
+* *Simplicité du boot* : un seul pool ZFS, datasets chiffrés
+  enfants, deux commandes (`zpool import` + `zfs load-key`) au
+  lieu d'une chaîne `geli attach × N` + `zpool import × N`.
+* *Snapshots / send-recv* : ZFS native permet `zfs send -w` qui
+  exporte les snapshots chiffrés tels quels — backups off-site
+  sans clé devient possible.
+
+`crystal-clevis-geli` v0.1 reste *fonctionnel et testé* (banc QEMU
+FreeBSD 15 aarch64). Le code n'est pas archivé tant que
+`crystal-clevis-zfs` n'est pas livré et fonctionnel — vous pouvez
+continuer à l'utiliser pendant la transition.
+
+*Migration prévue* : les utilisateurs Aloli passent à
+`crystal-clevis-zfs` au prochain re-bootstrap de chaque serveur.
+Pas de migration in-place forcée.
+
+*Référence* : voir le document
+https://github.com/aloli-crystal/crystal-beryl/blob/production/crystal-clevis-zfs-specs.adoc[crystal-clevis-zfs-specs.adoc]
+côté `crystal-beryl` pour les spécifications du successeur, et
+https://github.com/aloli-crystal/crystal-beryl/blob/production/boot-and-mount-plan.adoc[boot-and-mount-plan.adoc]
+§ « Pivot GELI → ZFS native » pour la justification détaillée.
+
+*Pour la communauté FreeBSD* : si quelqu'un a un usage Tang+GELI
+(Tang+UFS, Tang+ext4 portable, etc.) qui ne se traduit pas en
+Tang+ZFS, ce shard reste utilisable et open source. Les forks
+sont les bienvenus.
+====
+
 Équivalent FreeBSD/GELI de https://github.com/latchset/clevis[latchset/clevis].
 
 `crystal-clevis-geli` implémente le protocole client Tang
