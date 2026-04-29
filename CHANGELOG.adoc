@@ -3,6 +3,21 @@
 :toc-title: Versions
 :toclevels: 2
 
+== v0.2.1 — 2026-04-29
+
+=== Changed
+
+* **GitHub repository renamed** to `aloli-crystal/clevis-geli`
+  (Aloli naming convention: original creations drop the `crystal-`
+  prefix). Old links redirect automatically.
+* `name:` field, build target and CLI binary aligned on the new repo
+  name. Entry-point shim renamed to `src/clevis-geli.cr` (still loads
+  `src/crystal_clevis_geli.cr`, which holds the actual code).
+* Dependency on the JOSE shard updated to its new URL
+  (`aloli-crystal/jose`). `require` paths updated accordingly.
+* Internal module `Clevis` and folder `src/crystal_clevis_geli/`
+  unchanged — cleanup deferred.
+
 == v0.2.0 — 2026-04-27
 
 Multi-Tang threshold support via Shamir Secret Sharing.
@@ -43,5 +58,5 @@ Multi-Tang threshold support via Shamir Secret Sharing.
 == v0.1.0 — 2026-04-27
 
 Initial release: single-Tang bind/unlock for FreeBSD GELI volumes,
-on top of `crystal-jose`. CLI commands `bind`, `unlock`. End-to-end
+on top of `jose`. CLI commands `bind`, `unlock`. End-to-end
 tested in QEMU on a FreeBSD 15 aarch64 VM against a real `tangd`.

@@ -1,22 +1,22 @@
-name: crystal-clevis-geli
-version: 0.2.0
+name: clevis-geli
+version: 0.2.1
 description: |
   FreeBSD GELI counterpart of latchset/clevis. Implements the Tang
   client protocol (NBDE) so that GELI volumes can be unlocked at
   boot with no human intervention by querying one or more Tang
-  servers. Built on top of crystal-jose.
+  servers. Built on top of jose.
 authors:
   - Philippe Nénert <philippe@aloli.fr>
 license: MIT
 crystal: ">= 1.19.0"
 
 targets:
-  crystal-clevis-geli:
+  clevis-geli:
     main: src/cli.cr
 
 dependencies:
-  crystal-jose:
-    github: aloli-crystal/crystal-jose
+  jose:
+    github: aloli-crystal/jose
     version: ~> 0.1
 
 development_dependencies:

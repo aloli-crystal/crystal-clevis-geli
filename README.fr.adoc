@@ -1,9 +1,9 @@
-= crystal-clevis-geli
+= clevis-geli
 :toc: left
 :toclevels: 2
 :source-highlighter: rouge
 
-image:https://github.com/aloli-crystal/crystal-clevis-geli/actions/workflows/ci.yml/badge.svg[CI,link=https://github.com/aloli-crystal/crystal-clevis-geli/actions/workflows/ci.yml]
+image:https://github.com/aloli-crystal/clevis-geli/actions/workflows/ci.yml/badge.svg[CI,link=https://github.com/aloli-crystal/clevis-geli/actions/workflows/ci.yml]
 
 [IMPORTANT]
 .Statut du projet — 27 avril 2026
@@ -25,7 +25,7 @@ native encryption pour le cas d'usage Aloli (FreeBSD + ZFS) :
   exporte les snapshots chiffrés tels quels — backups off-site
   sans clé devient possible.
 
-`crystal-clevis-geli` v0.1 reste *fonctionnel et testé* (banc QEMU
+`clevis-geli` v0.1 reste *fonctionnel et testé* (banc QEMU
 FreeBSD 15 aarch64). Le code n'est pas archivé tant que
 `crystal-clevis-zfs` n'est pas livré et fonctionnel — vous pouvez
 continuer à l'utiliser pendant la transition.
@@ -35,9 +35,9 @@ continuer à l'utiliser pendant la transition.
 Pas de migration in-place forcée.
 
 *Référence* : voir le document
-https://github.com/aloli-crystal/crystal-beryl/blob/production/crystal-clevis-zfs-specs.adoc[crystal-clevis-zfs-specs.adoc]
-côté `crystal-beryl` pour les spécifications du successeur, et
-https://github.com/aloli-crystal/crystal-beryl/blob/production/boot-and-mount-plan.adoc[boot-and-mount-plan.adoc]
+https://github.com/aloli-crystal/beryl/blob/production/crystal-clevis-zfs-specs.adoc[crystal-clevis-zfs-specs.adoc]
+côté `beryl` pour les spécifications du successeur, et
+https://github.com/aloli-crystal/beryl/blob/production/boot-and-mount-plan.adoc[boot-and-mount-plan.adoc]
 § « Pivot GELI → ZFS native » pour la justification détaillée.
 
 *Pour la communauté FreeBSD* : si quelqu'un a un usage Tang+GELI
@@ -48,7 +48,7 @@ sont les bienvenus.
 
 Équivalent FreeBSD/GELI de https://github.com/latchset/clevis[latchset/clevis].
 
-`crystal-clevis-geli` implémente le protocole client Tang
+`clevis-geli` implémente le protocole client Tang
 (Network-Bound Disk Encryption — NBDE) pour permettre aux volumes
 GELI chiffrés d'être déverrouillés **au boot, sans intervention
 humaine**, en interrogeant un ou plusieurs serveurs Tang.
@@ -63,7 +63,7 @@ Version anglaise : link:README.adoc[README.adoc].
 [source]
 ----
                   ┌────────────────────────────────┐
-                  │    crystal-clevis-geli (this)  │
+                  │    clevis-geli (this)  │
                   │                                │
                   │  bind / recover  ── geli setkey│
                   │  Tang HTTP/JOSE                │
@@ -82,19 +82,19 @@ Version anglaise : link:README.adoc[README.adoc].
 [source,shell]
 ----
 # Lier un volume GELI à deux serveurs Tang (threshold 2 sur 2) :
-crystal-clevis-geli bind \
+clevis-geli bind \
     --device /dev/ada0p4 \
     --tang http://tang-nas.local \
     --tang http://tang-ovh.example.com
 
 # Déverrouiller un volume lié au boot (depuis rc.d) :
-crystal-clevis-geli unlock --device /dev/ada0p4
+clevis-geli unlock --device /dev/ada0p4
 ----
 
 == État
 
 * **v0.1** : protocole client Tang (advertise, recover) sur
-  `crystal-jose`. Primitives JOSE validées contre `latchset/jose`.
+  `jose`. Primitives JOSE validées contre `latchset/jose`.
 * **v0.1** : binding GELI via shell-out `geli(8)`.
 * **v0.2 (plus tard)** : threshold Shamir sur plusieurs serveurs
   Tang (`sss` à la Clevis).
@@ -104,8 +104,8 @@ crystal-clevis-geli unlock --device /dev/ada0p4
 [source,shell]
 ----
 shards install
-crystal build src/cli.cr -o crystal-clevis-geli
-sudo install -m 0755 crystal-clevis-geli /usr/local/sbin/
+crystal build src/cli.cr -o clevis-geli
+sudo install -m 0755 clevis-geli /usr/local/sbin/
 ----
 
 == Développement
