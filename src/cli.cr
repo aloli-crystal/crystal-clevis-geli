@@ -1,6 +1,6 @@
 require "option_parser"
 require "file_utils"
-require "./clevis_geli"
+require "./clevis-geli"
 
 # Convention (Aloli CLI UX): every long flag has a short equivalent;
 # every subcommand has a short alias.
