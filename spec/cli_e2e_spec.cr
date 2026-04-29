@@ -2,7 +2,7 @@ require "./spec_helper"
 require "file_utils"
 
 # End-to-end CLI test: write a fake `geli` binary that records its
-# arguments, point CrystalClevisGeli::Geli at it, and run the
+# arguments, point ClevisGeli::Geli at it, and run the
 # bind/unlock helpers directly (skipping the network by using
 # MockTangClient).
 describe "CLI e2e" do
@@ -25,8 +25,8 @@ describe "CLI e2e" do
 
     # We bypass the network entirely by injecting a MockTangClient.
     tang = MockTangClient.new("http://mock-tang.example.com")
-    keyfile = CrystalClevisGeli::Geli.random_keyfile
-    CrystalClevisGeli::Geli.setkey("/dev/fake0", keyfile)
+    keyfile = ClevisGeli::Geli.random_keyfile
+    ClevisGeli::Geli.setkey("/dev/fake0", keyfile)
     jwe = tang.bind(keyfile)
 
     jwe_path = File.join(key_store, "dev_fake0.jwe")
@@ -36,7 +36,7 @@ describe "CLI e2e" do
     read_back = File.read(jwe_path)
     recovered_keyfile = tang.recover(read_back)
     recovered_keyfile.should eq(keyfile)
-    CrystalClevisGeli::Geli.attach("/dev/fake0", recovered_keyfile)
+    ClevisGeli::Geli.attach("/dev/fake0", recovered_keyfile)
 
     log = File.read("/tmp/ccg-e2e/calls.log")
     log.should contain("setkey")

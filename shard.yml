@@ -1,5 +1,5 @@
 name: clevis-geli
-version: 0.2.1
+version: 0.2.2
 description: |
   FreeBSD GELI counterpart of latchset/clevis. Implements the Tang
   client protocol (NBDE) so that GELI volumes can be unlocked at
@@ -17,7 +17,7 @@ targets:
 dependencies:
   jose:
     github: aloli-crystal/jose
-    version: ~> 0.1
+    version: ~> 0.1.2
 
 development_dependencies:
   ameba:

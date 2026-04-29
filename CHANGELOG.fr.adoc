@@ -3,6 +3,20 @@
 :toc-title: Versions
 :toclevels: 2
 
+== v0.2.2 — 2026-04-29
+
+=== Modifié
+
+* **Module interne renommé** `CrystalClevisGeli` → `ClevisGeli`
+  (convention Aloli).
+* Dossier source `src/crystal_clevis_geli/` → `src/clevis_geli/`.
+  Fichier d'entrée consolidé dans `src/clevis-geli.cr`. Chemins
+  `require` internes adaptés.
+* **Référence du module amont mise à jour** `CrystalJose::*` →
+  `Jose::*` suite au renommage dans `aloli-crystal/jose` v0.1.2.
+  Épinglage du `shard.yml` bumpé sur `~> 0.1.2`.
+* Comportement et surface CLI inchangés.
+
 == v0.2.1 — 2026-04-29
 
 === Modifié

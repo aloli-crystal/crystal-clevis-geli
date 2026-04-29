@@ -2,7 +2,7 @@ require "process"
 require "file_utils"
 require "random/secure"
 
-module CrystalClevisGeli
+module ClevisGeli
   # Thin wrapper around geli(8) on FreeBSD.
   #
   # All key material passes through a temporary file with mode 600

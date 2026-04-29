@@ -4,9 +4,9 @@ require "../src/clevis-geli"
 # In-memory registry of MockTangClient instances keyed by URL. Tests
 # can use `MOCK_TANG_REGISTRY[url]` (or the `mock_tang_factory` proc
 # below) when they need SssBinder to round-trip through the mocks.
-MOCK_TANG_REGISTRY = {} of String => CrystalClevisGeli::TangClient
+MOCK_TANG_REGISTRY = {} of String => ClevisGeli::TangClient
 
-def mock_tang_factory : Proc(String, CrystalClevisGeli::TangClient)
+def mock_tang_factory : Proc(String, ClevisGeli::TangClient)
   ->(url : String) {
     MOCK_TANG_REGISTRY[url]? || raise "no mock registered for #{url}"
   }
@@ -16,27 +16,27 @@ end
 # produces a signed advertisement, and answers `recover` requests
 # with the correct EC point multiplication. Used to drive the full
 # bind/recover round-trip without a live network.
-class MockTangClient < CrystalClevisGeli::TangClient
-  getter signing_priv : CrystalJose::JWK::ECKey
-  getter derive_priv : CrystalJose::JWK::ECKey
+class MockTangClient < ClevisGeli::TangClient
+  getter signing_priv : Jose::JWK::ECKey
+  getter derive_priv : Jose::JWK::ECKey
 
   def initialize(url : String,
-                 @signing_priv : CrystalJose::JWK::ECKey = CrystalJose::JWK::ECKey.generate(CrystalJose::JWK::Curve::P521),
-                 @derive_priv : CrystalJose::JWK::ECKey = CrystalJose::JWK::ECKey.generate(CrystalJose::JWK::Curve::P521))
+                 @signing_priv : Jose::JWK::ECKey = Jose::JWK::ECKey.generate(Jose::JWK::Curve::P521),
+                 @derive_priv : Jose::JWK::ECKey = Jose::JWK::ECKey.generate(Jose::JWK::Curve::P521))
     super(url)
     MOCK_TANG_REGISTRY[url] = self
   end
 
-  protected def fetch_advertisement : CrystalClevisGeli::Advertisement
+  protected def fetch_advertisement : ClevisGeli::Advertisement
     payload = build_jwks
     jws = sign_advertisement(payload)
-    CrystalClevisGeli::Advertisement.from_jws(jws)
+    ClevisGeli::Advertisement.from_jws(jws)
   end
 
-  protected def post_recover(kid : String, x_point : CrystalJose::JWK::ECKey) : CrystalJose::JWK::ECKey
+  protected def post_recover(kid : String, x_point : Jose::JWK::ECKey) : Jose::JWK::ECKey
     raise "wrong kid" unless kid == @derive_priv.thumbprint_base64url
     # Y = derive_priv.d * x_point
-    CrystalClevisGeli::ECArithmetic.scalar_mul(@derive_priv, x_point)
+    ClevisGeli::ECArithmetic.scalar_mul(@derive_priv, x_point)
   end
 
   private def build_jwks : String
@@ -56,10 +56,10 @@ class MockTangClient < CrystalClevisGeli::TangClient
 
   private def sign_advertisement(payload : String) : String
     alg = case @signing_priv.curve
-          in .p256? then CrystalJose::JWS::Algorithm::ES256
-          in .p384? then CrystalJose::JWS::Algorithm::ES384
-          in .p521? then CrystalJose::JWS::Algorithm::ES512
+          in .p256? then Jose::JWS::Algorithm::ES256
+          in .p384? then Jose::JWS::Algorithm::ES384
+          in .p521? then Jose::JWS::Algorithm::ES512
           end
-    CrystalJose::JWS.sign(payload, alg, @signing_priv)
+    Jose::JWS.sign(payload, alg, @signing_priv)
   end
 end

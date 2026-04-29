@@ -1,10 +1,10 @@
 require "./spec_helper"
 
-describe CrystalClevisGeli::Sss do
+describe ClevisGeli::Sss do
   describe "round-trip" do
     it "splits and recovers a 32-byte secret with K=2/N=3" do
       secret = Random::Secure.random_bytes(32)
-      result = CrystalClevisGeli::Sss.split(secret, threshold: 2, count: 3)
+      result = ClevisGeli::Sss.split(secret, threshold: 2, count: 3)
       result.points.size.should eq(3)
       result.threshold.should eq(2)
 
@@ -14,41 +14,41 @@ describe CrystalClevisGeli::Sss do
         [result.points[0], result.points[2]],
         [result.points[1], result.points[2]],
       ].each do |subset|
-        recovered = CrystalClevisGeli::Sss.recover(result.prime, subset, secret_size: 32)
+        recovered = ClevisGeli::Sss.recover(result.prime, subset, secret_size: 32)
         recovered.should eq(secret)
       end
     end
 
     it "rejects K-1 points" do
       secret = Random::Secure.random_bytes(32)
-      result = CrystalClevisGeli::Sss.split(secret, threshold: 3, count: 5)
+      result = ClevisGeli::Sss.split(secret, threshold: 3, count: 5)
 
       # With only 2 of 3 required, the recovered value is statistically
       # different from the secret (we don't enforce an error, but the
       # value should not match).
       partial = result.points[0, 2]
-      recovered = CrystalClevisGeli::Sss.recover(result.prime, partial, secret_size: 32)
+      recovered = ClevisGeli::Sss.recover(result.prime, partial, secret_size: 32)
       recovered.should_not eq(secret)
     end
 
     it "round-trips K=1/N=1 (degenerate, equivalent to no sharing)" do
       secret = Random::Secure.random_bytes(32)
-      result = CrystalClevisGeli::Sss.split(secret, threshold: 1, count: 1)
+      result = ClevisGeli::Sss.split(secret, threshold: 1, count: 1)
       result.points.size.should eq(1)
-      recovered = CrystalClevisGeli::Sss.recover(result.prime, result.points, secret_size: 32)
+      recovered = ClevisGeli::Sss.recover(result.prime, result.points, secret_size: 32)
       recovered.should eq(secret)
     end
 
     it "round-trips K=N=3 (all required)" do
       secret = Random::Secure.random_bytes(32)
-      result = CrystalClevisGeli::Sss.split(secret, threshold: 3, count: 3)
-      recovered = CrystalClevisGeli::Sss.recover(result.prime, result.points, secret_size: 32)
+      result = ClevisGeli::Sss.split(secret, threshold: 3, count: 3)
+      recovered = ClevisGeli::Sss.recover(result.prime, result.points, secret_size: 32)
       recovered.should eq(secret)
     end
 
     it "round-trips K=3/N=5" do
       secret = Random::Secure.random_bytes(32)
-      result = CrystalClevisGeli::Sss.split(secret, threshold: 3, count: 5)
+      result = ClevisGeli::Sss.split(secret, threshold: 3, count: 5)
       [
         [0, 1, 2],
         [0, 2, 4],
@@ -56,58 +56,58 @@ describe CrystalClevisGeli::Sss do
         [2, 3, 4],
       ].each do |idxs|
         subset = idxs.map { |i| result.points[i] }
-        recovered = CrystalClevisGeli::Sss.recover(result.prime, subset, secret_size: 32)
+        recovered = ClevisGeli::Sss.recover(result.prime, subset, secret_size: 32)
         recovered.should eq(secret)
       end
     end
 
     it "is deterministic given the same prime + points" do
       secret = Random::Secure.random_bytes(32)
-      result = CrystalClevisGeli::Sss.split(secret, threshold: 2, count: 3)
-      r1 = CrystalClevisGeli::Sss.recover(result.prime, result.points[0, 2], secret_size: 32)
-      r2 = CrystalClevisGeli::Sss.recover(result.prime, result.points[0, 2], secret_size: 32)
+      result = ClevisGeli::Sss.split(secret, threshold: 2, count: 3)
+      r1 = ClevisGeli::Sss.recover(result.prime, result.points[0, 2], secret_size: 32)
+      r2 = ClevisGeli::Sss.recover(result.prime, result.points[0, 2], secret_size: 32)
       r1.should eq(r2)
     end
 
     it "produces different points across two splits of the same secret" do
       secret = Random::Secure.random_bytes(32)
-      a = CrystalClevisGeli::Sss.split(secret, threshold: 2, count: 3)
-      b = CrystalClevisGeli::Sss.split(secret, threshold: 2, count: 3)
+      a = ClevisGeli::Sss.split(secret, threshold: 2, count: 3)
+      b = ClevisGeli::Sss.split(secret, threshold: 2, count: 3)
       a.points[0].y.should_not eq(b.points[0].y)
       # But both round-trip to the same secret.
-      ra = CrystalClevisGeli::Sss.recover(a.prime, a.points[0, 2], secret_size: 32)
-      rb = CrystalClevisGeli::Sss.recover(b.prime, b.points[0, 2], secret_size: 32)
+      ra = ClevisGeli::Sss.recover(a.prime, a.points[0, 2], secret_size: 32)
+      rb = ClevisGeli::Sss.recover(b.prime, b.points[0, 2], secret_size: 32)
       ra.should eq(secret)
       rb.should eq(secret)
     end
 
     it "round-trips a 16-byte secret with K=2/N=3" do
       secret = Random::Secure.random_bytes(16)
-      result = CrystalClevisGeli::Sss.split(secret, threshold: 2, count: 3)
-      recovered = CrystalClevisGeli::Sss.recover(result.prime, result.points[0, 2], secret_size: 16)
+      result = ClevisGeli::Sss.split(secret, threshold: 2, count: 3)
+      recovered = ClevisGeli::Sss.recover(result.prime, result.points[0, 2], secret_size: 16)
       recovered.should eq(secret)
     end
   end
 
   describe "validation" do
     it "rejects threshold < 1" do
-      expect_raises(CrystalClevisGeli::Sss::Error, /threshold/) do
-        CrystalClevisGeli::Sss.split("x".to_slice, threshold: 0, count: 1)
+      expect_raises(ClevisGeli::Sss::Error, /threshold/) do
+        ClevisGeli::Sss.split("x".to_slice, threshold: 0, count: 1)
       end
     end
 
     it "rejects count < threshold" do
-      expect_raises(CrystalClevisGeli::Sss::Error, /count/) do
-        CrystalClevisGeli::Sss.split("x".to_slice, threshold: 3, count: 2)
+      expect_raises(ClevisGeli::Sss::Error, /count/) do
+        ClevisGeli::Sss.split("x".to_slice, threshold: 3, count: 2)
       end
     end
 
     it "rejects duplicate x-values at recover time" do
       secret = Random::Secure.random_bytes(32)
-      result = CrystalClevisGeli::Sss.split(secret, threshold: 2, count: 3)
+      result = ClevisGeli::Sss.split(secret, threshold: 2, count: 3)
       bad = [result.points[0], result.points[0]]
-      expect_raises(CrystalClevisGeli::Sss::Error, /duplicate/) do
-        CrystalClevisGeli::Sss.recover(result.prime, bad, secret_size: 32)
+      expect_raises(ClevisGeli::Sss::Error, /duplicate/) do
+        ClevisGeli::Sss.recover(result.prime, bad, secret_size: 32)
       end
     end
   end

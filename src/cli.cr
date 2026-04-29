@@ -1,10 +1,10 @@
 require "option_parser"
 require "file_utils"
-require "./crystal_clevis_geli"
+require "./clevis_geli"
 
 # Convention (Aloli CLI UX): every long flag has a short equivalent;
 # every subcommand has a short alias.
-module CrystalClevisGeli::CLI
+module ClevisGeli::CLI
   extend self
 
   DEFAULT_KEY_STORE = "/var/db/crystal-clevis-geli"
@@ -21,7 +21,7 @@ module CrystalClevisGeli::CLI
     when "unlock", "u"
       unlock(argv[1..-1])
     when "version", "v", "--version", "-V"
-      puts "crystal-clevis-geli #{CrystalClevisGeli::VERSION}"
+      puts "crystal-clevis-geli #{ClevisGeli::VERSION}"
       0
     when "help", "h", "--help", "-h"
       print_global_help(STDOUT)
@@ -69,17 +69,17 @@ module CrystalClevisGeli::CLI
       return 64
     end
 
-    keyfile = CrystalClevisGeli::Geli.random_keyfile
+    keyfile = ClevisGeli::Geli.random_keyfile
     if do_init
-      CrystalClevisGeli::Geli.init(device, keyfile)
+      ClevisGeli::Geli.init(device, keyfile)
     else
-      CrystalClevisGeli::Geli.setkey(device, keyfile)
+      ClevisGeli::Geli.setkey(device, keyfile)
     end
 
     jwe = if tang_urls.size == 1 && threshold == 1
-            CrystalClevisGeli::TangClient.new(tang_urls.first).bind(keyfile)
+            ClevisGeli::TangClient.new(tang_urls.first).bind(keyfile)
           else
-            CrystalClevisGeli::SssBinder.bind(keyfile, tang_urls, threshold: threshold)
+            ClevisGeli::SssBinder.bind(keyfile, tang_urls, threshold: threshold)
           end
 
     Dir.mkdir_p(key_store)
@@ -126,16 +126,16 @@ module CrystalClevisGeli::CLI
     jwe = File.read(jwe_path)
 
     # Dispatch on the JWE format: SSS multi-Tang vs plain single-Tang.
-    keyfile = if CrystalClevisGeli::SssBinder.is_sss?(jwe)
-                CrystalClevisGeli::SssBinder.recover(jwe)
+    keyfile = if ClevisGeli::SssBinder.is_sss?(jwe)
+                ClevisGeli::SssBinder.recover(jwe)
               else
                 header_b64 = jwe.split('.').first
-                header = Hash(String, JSON::Any).from_json(String.new(CrystalJose::Utils.base64url_decode(header_b64)))
+                header = Hash(String, JSON::Any).from_json(String.new(Jose::Utils.base64url_decode(header_b64)))
                 tang_url = header["clevis"].as_h["tang"].as_h["url"].as_s
-                CrystalClevisGeli::TangClient.new(tang_url).recover(jwe)
+                ClevisGeli::TangClient.new(tang_url).recover(jwe)
               end
 
-    CrystalClevisGeli::Geli.attach(device, keyfile)
+    ClevisGeli::Geli.attach(device, keyfile)
 
     puts "attached #{device}"
     0
@@ -162,4 +162,4 @@ module CrystalClevisGeli::CLI
   end
 end
 
-exit CrystalClevisGeli::CLI.run(ARGV) if PROGRAM_NAME.includes?("crystal-clevis-geli") || PROGRAM_NAME.includes?("cli")
+exit ClevisGeli::CLI.run(ARGV) if PROGRAM_NAME.includes?("crystal-clevis-geli") || PROGRAM_NAME.includes?("cli")

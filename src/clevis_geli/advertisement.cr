@@ -1,7 +1,7 @@
 require "json"
 require "jose"
 
-module CrystalClevisGeli
+module ClevisGeli
   # Parsed Tang advertisement: a JWS Compact whose payload is a JWKSet.
   #
   # The JWKSet contains keys for two purposes:
@@ -14,11 +14,11 @@ module CrystalClevisGeli
     end
 
     getter raw_jws : String
-    getter signing_keys : Array(CrystalJose::JWK::ECKey)
-    getter derive_keys : Array(CrystalJose::JWK::ECKey)
+    getter signing_keys : Array(Jose::JWK::ECKey)
+    getter derive_keys : Array(Jose::JWK::ECKey)
 
-    def initialize(@raw_jws : String, @signing_keys : Array(CrystalJose::JWK::ECKey),
-                   @derive_keys : Array(CrystalJose::JWK::ECKey))
+    def initialize(@raw_jws : String, @signing_keys : Array(Jose::JWK::ECKey),
+                   @derive_keys : Array(Jose::JWK::ECKey))
     end
 
     # Parse a JWS advertisement (Compact or Flattened JSON form, per
@@ -27,20 +27,20 @@ module CrystalClevisGeli
     # keys.
     def self.from_jws(jws : String) : Advertisement
       jws = compactify_if_flattened(jws)
-      info = CrystalJose::JWS.decode(jws)
+      info = Jose::JWS.decode(jws)
       payload_str = String.new(info[:payload])
       jwks = Hash(String, JSON::Any).from_json(payload_str)
       keys_array = jwks["keys"]?.try(&.as_a) || raise(Error.new("advertisement payload is not a JWKSet"))
 
-      signing_keys = [] of CrystalJose::JWK::ECKey
-      derive_keys = [] of CrystalJose::JWK::ECKey
+      signing_keys = [] of Jose::JWK::ECKey
+      derive_keys = [] of Jose::JWK::ECKey
 
       keys_array.each do |key_any|
         key_hash = {} of String => JSON::Any
         key_any.as_h.each { |k, v| key_hash[k] = v }
         next unless key_hash["kty"]?.try(&.as_s) == "EC"
 
-        ec_key = CrystalJose::JWK::ECKey.from_jwk_hash(key_hash)
+        ec_key = Jose::JWK::ECKey.from_jwk_hash(key_hash)
         if uses_for(key_hash).includes?("verify") || key_hash["use"]?.try(&.as_s) == "sig"
           signing_keys << ec_key
         end
@@ -58,7 +58,7 @@ module CrystalClevisGeli
     end
 
     # Find a deriveKey by its thumbprint (RFC 7638).
-    def find_derive_key(thumbprint_b64url : String) : CrystalJose::JWK::ECKey?
+    def find_derive_key(thumbprint_b64url : String) : Jose::JWK::ECKey?
       @derive_keys.find { |k| k.thumbprint_base64url == thumbprint_b64url }
     end
 
@@ -87,18 +87,18 @@ module CrystalClevisGeli
 
     # Verify the advertisement is signed by one of the embedded
     # signing keys (Tang advertisements are self-signed).
-    private def self.verify_self_signature!(jws : String, signing_keys : Array(CrystalJose::JWK::ECKey))
-      info = CrystalJose::JWS.decode(jws)
+    private def self.verify_self_signature!(jws : String, signing_keys : Array(Jose::JWK::ECKey))
+      info = Jose::JWS.decode(jws)
       header = info[:header]
       alg = header["alg"]?.try(&.as_s) || raise(Error.new("missing alg in advertisement JWS header"))
 
       # Try every signing key — Tang doesn't always include a kid.
       verified = signing_keys.any? do |k|
-        next false unless k.curve == CrystalJose::JWS::Algorithm.from_name(alg).curve
+        next false unless k.curve == Jose::JWS::Algorithm.from_name(alg).curve
         begin
-          CrystalJose::JWS.verify(jws, k)
+          Jose::JWS.verify(jws, k)
           true
-        rescue CrystalJose::JWS::VerificationError
+        rescue Jose::JWS::VerificationError
           false
         end
       end

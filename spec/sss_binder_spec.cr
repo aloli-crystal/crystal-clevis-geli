@@ -1,6 +1,6 @@
 require "./spec_helper"
 
-describe CrystalClevisGeli::SssBinder do
+describe ClevisGeli::SssBinder do
   describe "round-trip via MockTangClient (no network)" do
     it "binds with K=2/N=3 and recovers with any 2 of 3 Tangs" do
       MOCK_TANG_REGISTRY.clear
@@ -11,10 +11,10 @@ describe CrystalClevisGeli::SssBinder do
       ]
       payload = "Tang SSS round-trip with threshold 2/3"
 
-      jwe = CrystalClevisGeli::SssBinder.bind(payload, tangs, threshold: 2)
+      jwe = ClevisGeli::SssBinder.bind(payload, tangs, threshold: 2)
       jwe.split('.').size.should eq(5)
 
-      recovered = CrystalClevisGeli::SssBinder.recover(jwe, &mock_tang_factory)
+      recovered = ClevisGeli::SssBinder.recover(jwe, &mock_tang_factory)
       String.new(recovered).should eq(payload)
     end
 
@@ -24,15 +24,15 @@ describe CrystalClevisGeli::SssBinder do
         MockTangClient.new("http://tang-1.example"),
         MockTangClient.new("http://tang-2.example"),
         MockTangClient.new("http://tang-3.example"),
-      ] of CrystalClevisGeli::TangClient
+      ] of ClevisGeli::TangClient
 
       payload = "tolerates 1 panne sur 3"
-      jwe = CrystalClevisGeli::SssBinder.bind(payload, tangs, threshold: 2)
+      jwe = ClevisGeli::SssBinder.bind(payload, tangs, threshold: 2)
 
       # Simulate tang-2 going offline by removing it from the registry.
       MOCK_TANG_REGISTRY.delete("http://tang-2.example")
 
-      recovered = CrystalClevisGeli::SssBinder.recover(jwe, &mock_tang_factory)
+      recovered = ClevisGeli::SssBinder.recover(jwe, &mock_tang_factory)
       String.new(recovered).should eq(payload)
     end
 
@@ -42,15 +42,15 @@ describe CrystalClevisGeli::SssBinder do
         MockTangClient.new("http://tang-1.example"),
         MockTangClient.new("http://tang-2.example"),
         MockTangClient.new("http://tang-3.example"),
-      ] of CrystalClevisGeli::TangClient
+      ] of ClevisGeli::TangClient
 
-      jwe = CrystalClevisGeli::SssBinder.bind("should fail", tangs, threshold: 2)
+      jwe = ClevisGeli::SssBinder.bind("should fail", tangs, threshold: 2)
 
       MOCK_TANG_REGISTRY.delete("http://tang-1.example")
       MOCK_TANG_REGISTRY.delete("http://tang-2.example")
 
-      expect_raises(CrystalClevisGeli::SssBinder::Error, /shares/) do
-        CrystalClevisGeli::SssBinder.recover(jwe, &mock_tang_factory)
+      expect_raises(ClevisGeli::SssBinder::Error, /shares/) do
+        ClevisGeli::SssBinder.recover(jwe, &mock_tang_factory)
       end
     end
 
@@ -61,16 +61,16 @@ describe CrystalClevisGeli::SssBinder do
         MockTangClient.new("http://t2"),
         MockTangClient.new("http://t3"),
       ]
-      jwe = CrystalClevisGeli::SssBinder.bind("strict", tangs, threshold: 3)
-      recovered = CrystalClevisGeli::SssBinder.recover(jwe, &mock_tang_factory)
+      jwe = ClevisGeli::SssBinder.bind("strict", tangs, threshold: 3)
+      recovered = ClevisGeli::SssBinder.recover(jwe, &mock_tang_factory)
       String.new(recovered).should eq("strict")
     end
 
     it "round-trips K=1/N=1 (degenerate, equivalent to plain TangClient)" do
       MOCK_TANG_REGISTRY.clear
       tangs = [MockTangClient.new("http://t1")]
-      jwe = CrystalClevisGeli::SssBinder.bind("solo", tangs, threshold: 1)
-      recovered = CrystalClevisGeli::SssBinder.recover(jwe, &mock_tang_factory)
+      jwe = ClevisGeli::SssBinder.bind("solo", tangs, threshold: 1)
+      recovered = ClevisGeli::SssBinder.recover(jwe, &mock_tang_factory)
       String.new(recovered).should eq("solo")
     end
 
@@ -81,9 +81,9 @@ describe CrystalClevisGeli::SssBinder do
         MockTangClient.new("http://b"),
         MockTangClient.new("http://c"),
       ]
-      keyfile = CrystalClevisGeli::Geli.random_keyfile
-      jwe = CrystalClevisGeli::SssBinder.bind(keyfile, tangs, threshold: 2)
-      recovered = CrystalClevisGeli::SssBinder.recover(jwe, &mock_tang_factory)
+      keyfile = ClevisGeli::Geli.random_keyfile
+      jwe = ClevisGeli::SssBinder.bind(keyfile, tangs, threshold: 2)
+      recovered = ClevisGeli::SssBinder.recover(jwe, &mock_tang_factory)
       recovered.should eq(keyfile)
     end
   end
@@ -92,19 +92,19 @@ describe CrystalClevisGeli::SssBinder do
     it "detects SSS-flavored JWEs" do
       MOCK_TANG_REGISTRY.clear
       tangs = [MockTangClient.new("http://x"), MockTangClient.new("http://y")]
-      jwe = CrystalClevisGeli::SssBinder.bind("payload", tangs, threshold: 1)
-      CrystalClevisGeli::SssBinder.is_sss?(jwe).should be_true
+      jwe = ClevisGeli::SssBinder.bind("payload", tangs, threshold: 1)
+      ClevisGeli::SssBinder.is_sss?(jwe).should be_true
     end
 
     it "returns false for a plain Tang JWE (no SSS)" do
       MOCK_TANG_REGISTRY.clear
       tang = MockTangClient.new("http://solo")
       jwe = tang.bind("payload")
-      CrystalClevisGeli::SssBinder.is_sss?(jwe).should be_false
+      ClevisGeli::SssBinder.is_sss?(jwe).should be_false
     end
 
     it "returns false for malformed JWEs" do
-      CrystalClevisGeli::SssBinder.is_sss?("not.a.jwe").should be_false
+      ClevisGeli::SssBinder.is_sss?("not.a.jwe").should be_false
     end
   end
 
@@ -112,15 +112,15 @@ describe CrystalClevisGeli::SssBinder do
     it "rejects threshold > number of Tangs" do
       MOCK_TANG_REGISTRY.clear
       tangs = [MockTangClient.new("http://a")]
-      expect_raises(CrystalClevisGeli::SssBinder::Error, /threshold/) do
-        CrystalClevisGeli::SssBinder.bind("p", tangs, threshold: 2)
+      expect_raises(ClevisGeli::SssBinder::Error, /threshold/) do
+        ClevisGeli::SssBinder.bind("p", tangs, threshold: 2)
       end
     end
 
     it "rejects an empty Tang list" do
-      empty = [] of CrystalClevisGeli::TangClient
-      expect_raises(CrystalClevisGeli::SssBinder::Error, /required/) do
-        CrystalClevisGeli::SssBinder.bind("p", empty, threshold: 1)
+      empty = [] of ClevisGeli::TangClient
+      expect_raises(ClevisGeli::SssBinder::Error, /required/) do
+        ClevisGeli::SssBinder.bind("p", empty, threshold: 1)
       end
     end
   end
