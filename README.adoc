@@ -102,8 +102,8 @@ clevis-geli unlock --device /dev/ada0p4
 [source,shell]
 ----
 shards install
-crystal build src/cli.cr -o clevis-geli
-sudo install -m 0755 clevis-geli /usr/local/sbin/
+shards build --release
+sudo install -m 0755 bin/clevis-geli /usr/local/sbin/
 ----
 
 == Development
